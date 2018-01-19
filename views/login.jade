@@ -1,0 +1,49 @@
+doctype html
+html
+    head
+        title= 'Login'
+        link(rel='shortcut icon', type='image/png', href='/favicon.png')
+        link(rel='stylesheet', href='/stylesheets/style.css')
+        link(rel="stylesheet", href='/css/font-awesome/css/font-awesome.min.css')
+        link(rel='stylesheet', href='/bootstrap-4.0.0-beta/dist/css/bootstrap.min.css')
+
+    body
+        - let message = needToConfirm ? 'Please confirm registration on your email ! ' : '';
+        .container
+            .omb_login
+                h3.omb_authTitle
+                    | Login or
+                    a(href='/register')   Sign up
+                .row.justify-content-center.omb_socialButtons
+                    .col-xl-2.col-lg-2.col-md-3.col-sm-4.col-4
+                        a.btn.btn-lg.btn-block.omb_btn-vk(href='/auth/vkontakte')
+                            i.fa.fa-vk
+                            span.hidden-xs   Vkontakte
+                    .col-xl-2.col-lg-2.col-md-3.col-sm-4.col-4
+                        a.btn.btn-lg.btn-block.omb_btn-twitter(href='/auth/twitter')
+                            i.fa.fa-twitter
+                            span.hidden-xs   Twitter
+                    .col-xl-2.col-lg-2.col-md-3.col-sm-4.col-4
+                        a.btn.btn-lg.btn-block.omb_btn-facebook(href='/auth/facebook')
+                            i.fa.fa-facebook
+                            span.hidden-xs   Facebook
+                .row.justify-content-center.omb_loginOr
+                    .col-xl-6.col-lg-6.col-md-9.col-sm-12.col-12
+                        hr.omb_hrOr
+                        span.omb_spanOr(style='top: -1.16rem') or
+                .row.justify-content-center
+                    .col-xl-6.col-lg-6.col-md-9.col-sm-12.col-12
+                        form.omb_loginForm(action='/login', autocomplete='off', method='POST', data-toggle="validator")
+                            .input-group
+                                span.input-group-addon
+                                    i.fa.fa-user
+                                input.form-control(type='email', name='email', placeholder='Email address')
+                            span.form-text.my-sm-2.my-2
+                            .input-group
+                                span.input-group-addon
+                                    i.fa.fa-lock
+                                input.form-control(type='password', name='password', placeholder='Password', minlength = 6 )
+                            span.form-text.my-sm-2.my-2 #{message}
+                            button.btn.btn-lg.btn-primary.btn-block(type='submit')
+                                span.fa.fa-sign-in(style='padding: 5px')
+                                | Login

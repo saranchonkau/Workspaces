@@ -1,0 +1,141 @@
+doctype html
+html
+    head
+        title= workspace.name
+        link(rel='shortcut icon', type='image/png', href='/favicon.png')
+        link(rel="stylesheet", href='/css/font-awesome/css/font-awesome.min.css')
+        link(rel='stylesheet', href='/bootstrap-4.0.0-beta/dist/css/bootstrap.min.css')
+        script(src='/jquery/dist/jquery.min.js')
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js', integrity='sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4', crossorigin='anonymous')
+        script(src='/bootstrap-4.0.0-beta/dist/js/bootstrap.min.js')
+        link(href='/literallycanvas/css/literallycanvas.css', rel='stylesheet')
+
+        // dependency: React.js
+        script(src='http://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-with-addons.js')
+        script(src='http://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-dom.js')
+        // Literally Canvas
+        script(src='/literallycanvas/js/literallycanvas.js')
+
+    body
+        nav.navbar.navbar-expand-md.navbar-dark.bg-dark
+            .container
+                button.navbar-toggler(type='button', data-toggle='collapse', data-target='#navbarsExample04', aria-controls='navbarsExample04', aria-expanded='false', aria-label='Toggle navigation')
+                    span.navbar-toggler-icon
+                #navbarsExample04.collapse.navbar-collapse
+                    ul.navbar-nav.mr-auto
+                        li.nav-item
+                            a.nav-link(href='/') Home
+                        li.nav-item
+                            a.nav-link(href='/users') Userlist
+                        li.nav-item
+                            a.nav-link(href='/workspaces') Workspaces
+                    a.btn.btn-outline-info.btn-lg(href='/logout')
+                        span.i.fa.fa-sign-out(style='padding: 5px')
+                        | Log out
+        .container
+            h1.display-4.text-center(style='margin-bottom: 2rem; margin-top: 2rem;') #{workspace.name}
+            .my-drawing(id='#{workspace._id}')
+
+        script(src='/socket.io-client/dist/socket.io.js')
+        script.
+            const id = $('.my-drawing').attr('id');
+            const socket = io({query: 'roomName=' + id});
+            const lc = LC.init(
+                document.getElementsByClassName('my-drawing')[0], {
+                    imageURLPrefix: '/literallycanvas/img',
+                    tools: [
+                        LC.tools.Pencil,
+                        LC.tools.Eraser,
+                        LC.tools.Line,
+                        LC.tools.Rectangle,
+                        LC.tools.Text,
+                        LC.tools.Ellipse,
+                        LC.tools.Pan,
+                        LC.tools.Eyedropper
+                    ],
+                    onInit: initFunction
+                }
+            );
+
+            function initFunction(){
+                console.log('Init event !');
+                $.ajax({
+                    type: "GET",
+                    url: '/workspaces/' + id + '/snapshot',
+                    success: load
+                });
+            }
+
+            function load(snapshot){
+                console.log('Loaded: ', snapshot);
+                lc.loadSnapshot(JSON.parse(snapshot));
+            }
+
+            lc.on('shapeSave', function ({shape, previousShapeId}) {
+                console.log({shape, previousShapeId})
+                let classname = shape.className;
+                let snapshot = JSON.stringify(lc.getSnapshot());
+                console.log(snapshot);
+                socket.emit('saveShape', {shape, previousShapeId, classname, id, snapshot});
+            });
+
+            //Save Text object
+            socket.on('Text', function (newShapeObject) {
+                let textObject = newShapeObject.shape;
+                let previousShapeId = newShapeObject.previousShapeId;
+
+                lc.saveShape(LC.createShape('Text', {
+                        x: textObject.x,
+                        y: textObject.y,
+                        text: textObject.text,
+                        color: textObject.color,
+                        font: textObject.font,
+                        forcedWidth: textObject.forcedWidth,
+                        forcedHeight: textObject.forcedHeight,
+                        v: textObject.v
+                    }),
+                    false,
+                    previousShapeId);
+            });
+
+            let staticObjects = ['Rectangle', 'Line', 'Ellipse'];
+            staticObjects.forEach(function (shapeClassName) {
+                socket.on(shapeClassName, function (newShapeObject) {
+                    saveStaticShapeObject(newShapeObject);
+                });
+            })
+
+            let linePaths = ['LinePath', 'ErasedLinePath'];
+            linePaths.forEach(function (lineClass) {
+                socket.on(lineClass, function (newShapeObject) {
+                    let shape = newShapeObject.shape;
+                    console.log(shape);
+                    let previousId = newShapeObject.previousShapeId === null ? 1 : newShapeObject.previousShapeId;
+                    let points = [];
+                    shape.pointCoordinatePairs.forEach(function (pointPair, index) {
+                        points[index] = LC.createShape('Point', {
+                            x: pointPair[0],
+                            y: pointPair[1],
+                            size: shape.pointSize,
+                            color: shape.pointColor
+                        });
+                    });
+                    lc.saveShape(LC.createShape(lineClass, {
+                            points: points,
+                            smooth: shape.smooth
+                        }),
+                        false,
+                        previousId);
+                });
+            });
+
+            function saveStaticShapeObject(newShapeObject) {
+                let shape = newShapeObject.shape;
+                console.log(shape);
+
+                shape.className = newShapeObject.classname;
+                let previousId = newShapeObject.previousShapeId === null ? 1 : newShapeObject.previousShapeId;
+
+                lc.saveShape(shape, false, previousId);
+            }
+

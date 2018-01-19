@@ -1,0 +1,32 @@
+doctype html
+html
+    head
+        title= 'Registration'
+        link(rel='shortcut icon', type='image/png', href='/favicon.png')
+        link(rel='stylesheet', href='/stylesheets/style.css')
+        link(rel="stylesheet", href='/css/font-awesome/css/font-awesome.min.css')
+        link(rel='stylesheet', href='/bootstrap-4.0.0-beta/dist/css/bootstrap.min.css')
+    body
+        .container
+            .omb_login
+                h3.omb_authTitle Registration
+                .row.justify-content-center
+                    .col-xl-6.col-lg-6.col-md-9.col-sm-12.col-12
+                        form.omb_loginForm(action='/register', autocomplete='off', method='POST')
+                            .input-group
+                                span.input-group-addon
+                                    i.fa.fa-user
+                                input.form-control(type='text', name='username', placeholder='Name', minlength = 5, required)
+                            span.form-text.my-md-2
+                            .input-group
+                                span.input-group-addon
+                                    i.fa.fa-envelope
+                                input.form-control(type='email', name='email', placeholder='Email address', required)
+                            span.form-text.my-md-2
+                            .input-group
+                                span.input-group-addon
+                                    i.fa.fa-lock
+                                input.form-control(type='password', name='password', placeholder='Password', minlength = 6, required)
+                            span.form-text.my-md-2
+                            //Password error
+                            button.btn.btn-lg.btn-primary.btn-block(type='submit') Sign up

@@ -1,0 +1,104 @@
+doctype html
+html
+    head
+        title= 'Drawing'
+        link(rel='shortcut icon', type='image/png', href='/favicon.png')
+        link(rel='stylesheet', href='/bootstrap-4.0.0-beta/dist/css/bootstrap.min.css')
+        link(href='/literallycanvas/css/literallycanvas.css', rel='stylesheet')
+
+        // dependency: React.js
+        script(src='http://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-with-addons.js')
+        script(src='http://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-dom.js')
+        // Literally Canvas
+        script(src='/literallycanvas/js/literallycanvas.js')
+        script(src='/jquery/dist/jquery.min.js')
+    body
+        .container
+            .my-drawing
+            // kick it off
+
+        script(src='/socket.io-client/dist/socket.io.js')
+        script.
+            const socket = io();
+            const lc = LC.init(
+                document.getElementsByClassName('my-drawing')[0], {
+                    imageURLPrefix: '/literallycanvas/img',
+                    tools: [
+                        LC.tools.Pencil,
+                        LC.tools.Eraser,
+                        LC.tools.Line,
+                        LC.tools.Rectangle,
+                        LC.tools.Text,
+                        LC.tools.Ellipse,
+                        LC.tools.Pan,
+                        LC.tools.Eyedropper
+                    ]
+                }
+            );
+
+            lc.on('shapeSave', function ({shape, previousShapeId}) {
+                console.log({shape, previousShapeId})
+                let parent = Object.getPrototypeOf(shape);
+                let classname = shape.className;
+                socket.emit('saveShape', {shape, previousShapeId, classname});
+            })
+
+            //Save Text object
+            socket.on('Text', function(newShapeObject){
+               let textObject = newShapeObject.shape;
+               let previousShapeId = newShapeObject.previousShapeId;
+
+               lc.saveShape(LC.createShape('Text', {
+                   x: textObject.x,
+                   y: textObject.y,
+                   text: textObject.text,
+                   color: textObject.color,
+                   font: textObject.font,
+                   forcedWidth: textObject.forcedWidth,
+                   forcedHeight: textObject.forcedHeight,
+                   v: textObject.v
+               }),
+                   false,
+                   previousShapeId);
+            });
+
+            let staticObjects = ['Rectangle', 'Line', 'Ellipse'];
+            staticObjects.forEach(function (shapeClassName) {
+                socket.on(shapeClassName, function (newShapeObject) {
+                    saveStaticShapeObject(newShapeObject);
+                });
+            })
+
+            socket.on('LinePath', function (newShapeObject) {
+                let shape = newShapeObject.shape;
+                console.log(shape);
+                let previousId = newShapeObject.previousShapeId === null ? 1 : newShapeObject.previousShapeId;
+                    let points = [];
+                    shape.pointCoordinatePairs.forEach(function (pointPair, index) {
+                        points[index] = LC.createShape('Point', {
+                            x: pointPair[0],
+                            y: pointPair[1],
+                            size: shape.pointSize,
+                            color: shape.pointColor
+                        });
+                    });
+                    lc.saveShape(LC.createShape('LinePath', {
+                            points: points,
+                            smooth: shape.smooth
+                        }),
+                        false,
+                        previousId);
+            });
+
+            function saveStaticShapeObject(newShapeObject) {
+                let shape = newShapeObject.shape;
+                console.log(shape);
+
+                shape.className = newShapeObject.classname;
+                let previousId = newShapeObject.previousShapeId === null ? 1 : newShapeObject.previousShapeId;
+
+                lc.saveShape(shape, false, previousId);
+            }
+
+
+
